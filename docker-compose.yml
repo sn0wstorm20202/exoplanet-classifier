@@ -1,0 +1,82 @@
+services:
+  # Backend API Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: exoplanet-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models:ro  # Mount models directory as read-only
+      - ./data:/app/data:ro      # Mount data directory as read-only
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    networks:
+      - exoplanet-network
+    restart: unless-stopped
+    depends_on:
+      - model-init
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: exoplanet-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - exoplanet-network
+    restart: unless-stopped
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Model initialization service (runs once to train model)
+  model-init:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: exoplanet-model-init
+    volumes:
+      - ./models:/app/models        # Mount models directory for writing
+      - ./data:/app/data            # Mount data directory for read/write
+      - ./notebooks:/app/notebooks:ro  # Mount notebooks for data processing
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    networks:
+      - exoplanet-network
+    command: >
+      sh -c "
+        echo '🚀 Starting model initialization...' &&
+        python /app/notebooks/load_combined_data.py &&
+        echo '📊 Data processing completed' &&
+        python /app/train.py &&
+        echo '🎯 Model training completed' &&
+        echo '✅ Model initialization finished'
+      "
+    restart: "no"  # Run only once
+
+networks:
+  exoplanet-network:
+    driver: bridge
+
+volumes:
+  models_data:
+    driver: local

@@ -1,0 +1,18 @@
+{
+  "features": [
+    "pl_bmasse",
+    "pl_trandep",
+    "sy_dist",
+    "pl_trandur",
+    "st_teff",
+    "pl_rade",
+    "st_rad",
+    "pl_orbper"
+  ],
+  "label_column": "label_standardized",
+  "dataset_sources": [
+    "KEPLER",
+    "K2",
+    "TESS"
+  ]
+}

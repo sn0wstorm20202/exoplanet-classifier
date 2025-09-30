@@ -1,0 +1,111 @@
+{
+  "model_type": "RandomForestClassifier",
+  "training_timestamp": "2025-09-30T13:00:33.435365",
+  "feature_names": [
+    "pl_bmasse",
+    "pl_trandep",
+    "sy_dist",
+    "pl_trandur",
+    "st_teff",
+    "pl_rade",
+    "st_rad",
+    "pl_orbper"
+  ],
+  "label_classes": [
+    "CANDIDATE",
+    "CONFIRMED",
+    "FALSE POSITIVE"
+  ],
+  "data_shape": [
+    19859,
+    10
+  ],
+  "model_parameters": {
+    "bootstrap": true,
+    "ccp_alpha": 0.0,
+    "class_weight": "balanced",
+    "criterion": "gini",
+    "max_depth": 15,
+    "max_features": "sqrt",
+    "max_leaf_nodes": null,
+    "max_samples": null,
+    "min_impurity_decrease": 0.0,
+    "min_samples_leaf": 2,
+    "min_samples_split": 5,
+    "min_weight_fraction_leaf": 0.0,
+    "monotonic_cst": null,
+    "n_estimators": 200,
+    "n_jobs": -1,
+    "oob_score": false,
+    "random_state": 42,
+    "verbose": 0,
+    "warm_start": false
+  },
+  "evaluation_results": {
+    "train_accuracy": 0.853842764524454,
+    "test_accuracy": 0.7328801611278952,
+    "cv_mean": 0.724176046644255,
+    "cv_std": 0.006965987491705391,
+    "classification_report": {
+      "CANDIDATE": {
+        "precision": 0.7593486127864898,
+        "recall": 0.7161547212741752,
+        "f1-score": 0.7371194379391101,
+        "support": 1758.0
+      },
+      "CONFIRMED": {
+        "precision": 0.6871069182389937,
+        "recall": 0.7803571428571429,
+        "f1-score": 0.7307692307692307,
+        "support": 1120.0
+      },
+      "FALSE POSITIVE": {
+        "precision": 0.746641074856046,
+        "recall": 0.7111517367458866,
+        "f1-score": 0.7284644194756554,
+        "support": 1094.0
+      },
+      "accuracy": 0.7328801611278952,
+      "macro avg": {
+        "precision": 0.7310322019605099,
+        "recall": 0.7358878669590682,
+        "f1-score": 0.7321176960613321,
+        "support": 3972.0
+      },
+      "weighted avg": {
+        "precision": 0.7354783347429095,
+        "recall": 0.7328801611278952,
+        "f1-score": 0.7329450113959872,
+        "support": 3972.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        1259,
+        297,
+        202
+      ],
+      [
+        184,
+        874,
+        62
+      ],
+      [
+        215,
+        101,
+        778
+      ]
+    ],
+    "feature_importance": {
+      "pl_bmasse": 0.003401205638171166,
+      "pl_trandep": 0.18238851258999322,
+      "sy_dist": 0.09443533192464168,
+      "pl_trandur": 0.10887958677189269,
+      "st_teff": 0.11242302746831952,
+      "pl_rade": 0.21985436025186514,
+      "st_rad": 0.09746246393641933,
+      "pl_orbper": 0.18115551141869718
+    }
+  },
+  "version": "1.0.0"
+}
