@@ -72,16 +72,33 @@ def inspect_csv_structure(filepath):
 
 def map_column_names(df, dataset_name):
     """Map various column name formats to standardized feature names."""
-    # Standard feature names we want
+    # Standard feature names we want (ENHANCED)
     standard_features = {
+        # Original features
         'pl_orbper': ['pl_orbper', 'Orbital Period [days]', 'koi_period', 'orbital_period'],
         'pl_rade': ['pl_rade', 'Planetary Radius [Earth radii]', 'koi_prad', 'planet_radius'],
         'pl_trandep': ['pl_trandep', 'Transit Depth [ppm]', 'koi_depth', 'transit_depth'],
-        'pl_trandur': ['pl_trandur', 'Transit Duration [hours]', 'koi_duration', 'transit_duration'],
+        'pl_trandur': ['pl_trandur', 'Transit Duration [hours]', 'koi_duration', 'transit_duration', 'pl_trandurh'],
         'pl_bmasse': ['pl_bmasse', 'Planet Mass [Earth masses]', 'koi_mass', 'planet_mass'],
-        'st_teff': ['st_teff', 'Stellar Effective Temperature [K]', 'koi_seff', 'stellar_temp'],
+        'st_teff': ['st_teff', 'Stellar Effective Temperature [K]', 'koi_seff', 'koi_steff', 'stellar_temp'],
         'st_rad': ['st_rad', 'Stellar Radius [Solar radii]', 'koi_srad', 'stellar_radius'],
-        'sy_dist': ['sy_dist', 'Distance [pc]', 'koi_dist', 'distance']
+        'sy_dist': ['sy_dist', 'Distance [pc]', 'koi_dist', 'distance'],
+        
+        # HIGH PRIORITY: Quality indicators (critical for accuracy)
+        'pl_snr': ['pl_snr', 'koi_model_snr', 'Transit Signal-to-Noise', 'signal_noise', 'snr'],
+        'fp_flag_nt': ['fp_flag_nt', 'koi_fpflag_nt', 'Not Transit-Like False Positive Flag'],
+        'fp_flag_ss': ['fp_flag_ss', 'koi_fpflag_ss', 'Stellar Eclipse False Positive Flag'],
+        'fp_flag_co': ['fp_flag_co', 'koi_fpflag_co', 'Centroid Offset False Positive Flag'],
+        'fp_flag_ec': ['fp_flag_ec', 'koi_fpflag_ec', 'Ephemeris Match Indicates Contamination False Positive Flag'],
+        'koi_score': ['koi_score', 'Disposition Score', 'confidence_score'],
+        
+        # MEDIUM PRIORITY: Physical parameters
+        'pl_impact': ['pl_impact', 'koi_impact', 'Impact Parameter', 'impact_param'],
+        'st_slogg': ['st_slogg', 'koi_slogg', 'st_logg', 'Stellar Surface Gravity [log10(cm/s**2)]', 'stellar_gravity'],
+        'pl_eqt': ['pl_eqt', 'koi_teq', 'Equilibrium Temperature [K]', 'equilibrium_temp'],
+        'pl_insol': ['pl_insol', 'koi_insol', 'Insolation Flux [Earth flux]', 'insolation'],
+        'transit_count': ['transit_count', 'koi_count', 'koi_num_transits', 'num_transits'],
+        'pl_orbsmax': ['pl_orbsmax', 'koi_smax', 'Semi-Major Axis [AU]', 'orbital_axis']
     }
     
     # Possible label column names
@@ -176,6 +193,125 @@ def standardize_labels(df, label_col):
     
     return df
 
+def engineer_features(df):
+    """Create derived features that improve model performance"""
+    
+    print(f"\n{'='*20} ENGINEERING DERIVED FEATURES {'='*20}")
+    
+    engineered_features = []
+    
+    # 1. Combined false positive flag (ANY FP flag = high risk)
+    fp_flags = ['fp_flag_nt', 'fp_flag_ss', 'fp_flag_co', 'fp_flag_ec']
+    available_fp_flags = [f for f in fp_flags if f in df.columns]
+    if available_fp_flags:
+        df['fp_flag_any'] = df[available_fp_flags].max(axis=1)
+        engineered_features.append('fp_flag_any')
+        print(f"  ✅ Created: fp_flag_any (any FP flag = 1)")
+        print(f"      {df['fp_flag_any'].sum()} objects flagged as potential false positives")
+    
+    # 2. Planet density (mass/radius³) - key physical relationship
+    if 'pl_bmasse' in df.columns and 'pl_rade' in df.columns:
+        # Calculate density, handle division by zero
+        df['pl_density'] = np.where(
+            df['pl_rade'] > 0, 
+            df['pl_bmasse'] / (df['pl_rade'] ** 3),
+            np.nan
+        )
+        df['pl_density'] = df['pl_density'].replace([np.inf, -np.inf], np.nan)
+        # Cap extreme values
+        df['pl_density'] = df['pl_density'].clip(0, 50)  
+        engineered_features.append('pl_density')
+        print(f"  ✅ Created: pl_density (mass/radius³)")
+        density_median = df['pl_density'].median()
+        print(f"      Median density: {density_median:.2f} Earth densities")
+    
+    # 3. Transit depth consistency ratio (observed/expected)
+    if all(col in df.columns for col in ['pl_trandep', 'pl_rade', 'st_rad']):
+        # Expected depth = (R_planet / R_star)² in ppm
+        # Convert Earth radii to km, Solar radii to km for calculation
+        earth_radius_km = 6371
+        solar_radius_km = 696000
+        
+        expected_depth = np.where(
+            (df['st_rad'] > 0) & (df['pl_rade'] > 0),
+            ((df['pl_rade'] * earth_radius_km) / (df['st_rad'] * solar_radius_km)) ** 2 * 1e6,
+            np.nan
+        )
+        
+        df['depth_ratio'] = np.where(
+            expected_depth > 0,
+            df['pl_trandep'] / expected_depth,
+            np.nan
+        )
+        df['depth_ratio'] = df['depth_ratio'].replace([np.inf, -np.inf], np.nan)
+        df['depth_ratio'] = df['depth_ratio'].clip(0, 5)  # Cap extreme values
+        engineered_features.append('depth_ratio')
+        print(f"  ✅ Created: depth_ratio (observed/expected depth)")
+        print(f"      Ratio ~1.0 indicates consistent transit, >1.5 may indicate issues")
+    
+    # 4. SNR quality categories (if SNR available)
+    if 'pl_snr' in df.columns:
+        # Create quality bins: 0=poor, 1=fair, 2=good, 3=excellent
+        df['snr_quality'] = pd.cut(
+            df['pl_snr'],
+            bins=[-np.inf, 10, 20, 50, np.inf],
+            labels=[0, 1, 2, 3],
+            include_lowest=True
+        ).astype(float)
+        engineered_features.append('snr_quality')
+        print(f"  ✅ Created: snr_quality (0=poor, 1=fair, 2=good, 3=excellent)")
+        quality_dist = df['snr_quality'].value_counts().sort_index()
+        print(f"      Quality distribution: {dict(quality_dist)}")
+    
+    # 5. Combined transit signal strength
+    if 'pl_trandep' in df.columns and 'pl_snr' in df.columns:
+        df['transit_signal'] = df['pl_trandep'] * np.log1p(df['pl_snr'])
+        engineered_features.append('transit_signal')
+        print(f"  ✅ Created: transit_signal (depth × log(1+SNR))")
+        print(f"      Combines depth and quality into single metric")
+    
+    # 6. Habitable zone distance ratio
+    if all(col in df.columns for col in ['pl_orbper', 'st_teff']):
+        # Rough habitable zone based on stellar temperature
+        # HZ period scales as (L_star)^0.5 = (T_eff/T_sun)^2
+        hz_period = np.where(
+            df['st_teff'] > 0,
+            ((df['st_teff'] / 5778) ** 2) * 365,  # Earth-equivalent period
+            365  # Default to 1 year if no stellar temp
+        )
+        
+        df['hz_ratio'] = np.where(
+            hz_period > 0,
+            df['pl_orbper'] / hz_period,
+            np.nan
+        )
+        df['hz_ratio'] = df['hz_ratio'].clip(0, 10)  # Cap extreme values
+        engineered_features.append('hz_ratio')
+        print(f"  ✅ Created: hz_ratio (orbital period / habitable zone period)")
+        print(f"      ~1.0 = habitable zone, <1.0 = hot, >1.0 = cold")
+    
+    # 7. Stellar mass proxy (if stellar gravity available)
+    if 'st_slogg' in df.columns and 'st_rad' in df.columns:
+        # log(g) = log(GM/R²) = log(M) + log(G) - 2*log(R)
+        # Approximate stellar mass in solar masses
+        G_cgs = 6.67e-8  # cm³/g/s²
+        G_solar = 6.67e-8 / (1.989e33)  # Normalize to solar units
+        
+        df['st_mass_proxy'] = np.where(
+            (df['st_rad'] > 0) & (~df['st_slogg'].isna()),
+            (10 ** df['st_slogg']) * (df['st_rad'] ** 2) / (10 ** 4.44),  # Solar log(g) ≈ 4.44
+            np.nan
+        )
+        df['st_mass_proxy'] = df['st_mass_proxy'].clip(0.1, 10)  # Reasonable stellar mass range
+        engineered_features.append('st_mass_proxy')
+        print(f"  ✅ Created: st_mass_proxy (from surface gravity)")
+    
+    print(f"\n🎯 FEATURE ENGINEERING SUMMARY:")
+    print(f"  Created {len(engineered_features)} new features: {engineered_features}")
+    print(f"  Total features available: {len([c for c in df.columns if c not in ['label_standardized', 'dataset_source']])}")
+    
+    return df, engineered_features
+
 def handle_missing_values_and_outliers(df, features):
     """Handle missing values and remove outliers."""
     print(f"\n🔧 Processing missing values and outliers...")
@@ -189,24 +325,33 @@ def handle_missing_values_and_outliers(df, features):
         if missing_count > 0:
             print(f"  {feature}: {missing_count} ({missing_count/len(df)*100:.1f}%)")
     
-    # Fill missing values with median
+    # Fill missing values with median for numeric features
     for feature in features:
         if df[feature].isnull().sum() > 0:
-            median_val = df[feature].median()
-            df[feature] = df[feature].fillna(median_val)
-            print(f"  ✅ Filled {feature} missing values with median: {median_val:.3f}")
+            if df[feature].dtype in ['float64', 'int64']:
+                median_val = df[feature].median()
+                df[feature] = df[feature].fillna(median_val)
+                print(f"  ✅ Filled {feature} missing values with median: {median_val:.3f}")
+            else:
+                # For categorical features, use mode
+                mode_val = df[feature].mode().iloc[0] if len(df[feature].mode()) > 0 else 0
+                df[feature] = df[feature].fillna(mode_val)
+                print(f"  ✅ Filled {feature} missing values with mode: {mode_val}")
     
-    # Remove outliers (beyond 3 standard deviations)
+    # Remove outliers (beyond 3 standard deviations) only for critical features
     outlier_mask = pd.Series([True] * len(df))
     
-    for feature in features:
+    # Be more conservative with outlier removal for new features
+    outlier_features = [f for f in features if f in ['pl_orbper', 'pl_rade', 'pl_trandep', 'pl_trandur']]
+    
+    for feature in outlier_features:
         if df[feature].dtype in ['float64', 'int64']:
             mean_val = df[feature].mean()
             std_val = df[feature].std()
             
-            # Define outlier bounds
-            lower_bound = mean_val - 3 * std_val
-            upper_bound = mean_val + 3 * std_val
+            # Define outlier bounds (more conservative)
+            lower_bound = mean_val - 4 * std_val  # Changed from 3 to 4
+            upper_bound = mean_val + 4 * std_val
             
             feature_outliers = (df[feature] < lower_bound) | (df[feature] > upper_bound)
             outlier_mask &= ~feature_outliers
@@ -314,8 +459,16 @@ def main():
     # Create final dataset with only available features
     final_df = combined_df[final_columns].copy()
     
+    # Apply feature engineering before cleaning
+    print(f"\n{'='*20} APPLYING FEATURE ENGINEERING {'='*20}")
+    final_df_engineered, engineered_features = engineer_features(final_df)
+    
+    # Update feature list to include engineered features
+    all_final_features = final_features + engineered_features
+    print(f"  📊 Total features (original + engineered): {len(all_final_features)}")
+    
     # Handle missing values and outliers
-    final_df_clean = handle_missing_values_and_outliers(final_df, final_features)
+    final_df_clean = handle_missing_values_and_outliers(final_df_engineered, all_final_features)
     
     # Save processed data
     output_path = data_dir / 'processed_combined.csv'
@@ -324,15 +477,28 @@ def main():
     print(f"\n{'='*20} PROCESSING COMPLETE {'='*20}")
     print(f"✅ Processed data saved to: {output_path}")
     print(f"📊 Final dataset shape: {final_df_clean.shape}")
-    print(f"🎯 Features: {final_features}")
+    print(f"🎯 Total features: {len(all_final_features)} (was 8, now {len(all_final_features)})")
+    print(f"   Original features: {len(final_features)}")
+    print(f"   Engineered features: {len(engineered_features)}")
     print(f"📈 Label distribution:")
     print(final_df_clean['label_standardized'].value_counts())
     
+    print(f"\n🔥 HIGH-VALUE FEATURES INCLUDED:")
+    quality_features = [f for f in all_final_features if any(x in f for x in ['snr', 'fp_flag', 'score', 'signal'])]
+    physical_features = [f for f in all_final_features if any(x in f for x in ['density', 'ratio', 'hz_', 'mass'])]
+    if quality_features:
+        print(f"   Quality indicators: {quality_features}")
+    if physical_features:
+        print(f"   Physical insights: {physical_features}")
+    
     # Save feature list for training script
     feature_info = {
-        'features': final_features,
+        'features': all_final_features,
+        'original_features': final_features,
+        'engineered_features': engineered_features,
         'label_column': 'label_standardized',
-        'dataset_sources': final_df_clean['dataset_source'].unique().tolist()
+        'dataset_sources': final_df_clean['dataset_source'].unique().tolist(),
+        'feature_count_improvement': f"{len(final_features)} → {len(all_final_features)} (+{len(engineered_features)} engineered)"
     }
     
     import json

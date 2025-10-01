@@ -17,5 +17,8 @@ python-csv==0.0.13
 # Logging and Utilities
 pathlib2==2.3.7
 
+# Class balancing and sampling
+imbalanced-learn==0.11.0
+
 # Optional: For better performance
 orjson==3.9.10

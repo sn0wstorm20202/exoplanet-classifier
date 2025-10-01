@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 class PredictionRequest(BaseModel):
     """Request model for single prediction."""
+    # Base 8 fields
     pl_orbper: Optional[float] = Field(None, description="Orbital Period [days]")
     pl_rade: Optional[float] = Field(None, description="Planet Radius [Earth radii]")
     pl_trandep: Optional[float] = Field(None, description="Transit Depth [ppm]")
@@ -40,6 +41,18 @@ class PredictionRequest(BaseModel):
     st_teff: Optional[float] = Field(None, description="Stellar Temperature [K]")
     st_rad: Optional[float] = Field(None, description="Stellar Radius [Solar radii]")
     sy_dist: Optional[float] = Field(None, description="Distance [pc]")
+    # Advanced quality/physical fields (optional)
+    pl_snr: Optional[float] = Field(None, description="Transit Signal-to-Noise")
+    koi_score: Optional[float] = Field(None, description="Disposition score 0-1")
+    fp_flag_nt: Optional[float] = Field(None, description="Not transit-like FP flag (0/1)")
+    fp_flag_ss: Optional[float] = Field(None, description="Stellar eclipse FP flag (0/1)")
+    fp_flag_co: Optional[float] = Field(None, description="Centroid offset FP flag (0/1)")
+    fp_flag_ec: Optional[float] = Field(None, description="Ephemeris match FP flag (0/1)")
+    pl_impact: Optional[float] = Field(None, description="Impact parameter")
+    st_slogg: Optional[float] = Field(None, description="Stellar surface gravity logg")
+    pl_eqt: Optional[float] = Field(None, description="Equilibrium temperature [K]")
+    pl_insol: Optional[float] = Field(None, description="Insolation flux [Earth flux]")
+    transit_count: Optional[float] = Field(None, description="Number of observed transits")
 
 class PredictionResponse(BaseModel):
     """Response model for predictions."""
@@ -137,27 +150,38 @@ class ExoplanetClassifier:
                     'missing_count': int(df[feature].isnull().sum())
                 }
             else:
-                # Use median from training data if available in metadata
-                median_value = 0.0  # Default fallback
-                if ('evaluation_results' in self.metadata and 
-                    'feature_importance' in self.metadata['evaluation_results']):
-                    # Use a reasonable default based on feature type
+                # Fill with training mean from scaler if available; fallback to sensible defaults
+                fill_value = 0.0
+                try:
+                    if self.scaler is not None and hasattr(self.scaler, 'mean_'):
+                        # Map feature to its index in the training feature order
+                        idx = self.feature_names.index(feature)
+                        fill_value = float(self.scaler.mean_[idx])
+                        # Guard against NaN/inf in scaler means (shouldn't happen, but be safe)
+                        if fill_value != fill_value or fill_value is None:  # NaN check
+                            raise ValueError("NaN mean encountered for feature")
+                except Exception:
+                    # As a final fallback, use some reasonable domain defaults for core physical features
                     feature_defaults = {
-                        'pl_orbper': 20.0,    # ~20 days orbital period
-                        'pl_rade': 2.0,       # ~2 Earth radii
-                        'pl_trandep': 1000.0, # ~1000 ppm transit depth
-                        'pl_trandur': 3.0,    # ~3 hours transit duration
-                        'pl_bmasse': 5.0,     # ~5 Earth masses
-                        'st_teff': 5778.0,    # ~Sun temperature
-                        'st_rad': 1.0,        # ~Solar radius
-                        'sy_dist': 200.0      # ~200 pc distance
+                        'pl_orbper': 20.0,    # days
+                        'pl_rade': 2.0,       # Earth radii
+                        'pl_trandep': 1000.0, # ppm
+                        'pl_trandur': 3.0,    # hours
+                        'pl_bmasse': 5.0,     # Earth masses
+                        'st_teff': 5778.0,    # K
+                        'st_rad': 1.0,        # Solar radii
+                        'sy_dist': 200.0      # pc
                     }
-                    median_value = feature_defaults.get(feature, 0.0)
+                    fill_value = float(feature_defaults.get(feature, 0.0))
                 
-                X[feature] = median_value
+                # If categorical-like engineered feature (e.g., snr_quality), clamp to valid range
+                if feature == 'snr_quality':
+                    fill_value = float(min(3, max(0, round(fill_value))))
+                
+                X[feature] = fill_value
                 feature_info[feature] = {
                     'available': False,
-                    'filled_with': float(median_value)
+                    'filled_with': float(fill_value)
                 }
         
         # Fill missing values with median of available data
@@ -176,6 +200,18 @@ class ExoplanetClassifier:
         
         # Validate and prepare data
         X, feature_info = self.validate_and_prepare_data(df)
+        
+        # Final safety: replace any inf/NaN with training means before scaling
+        try:
+            import numpy as _np
+            X = X.replace([_np.inf, -_np.inf], _np.nan)
+            if hasattr(self.scaler, 'mean_'):
+                means_series = pd.Series(self.scaler.mean_, index=self.feature_names)
+                X = X.fillna(means_series)
+            else:
+                X = X.fillna(0)
+        except Exception:
+            X = X.fillna(0)
         
         # Scale features
         X_scaled = self.scaler.transform(X)
