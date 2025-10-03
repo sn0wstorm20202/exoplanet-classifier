@@ -1,13 +1,13 @@
 {
   "features": [
-    "pl_bmasse",
-    "pl_trandep",
-    "sy_dist",
-    "pl_trandur",
-    "st_teff",
     "pl_rade",
+    "pl_trandep",
+    "st_teff",
+    "pl_trandur",
+    "pl_orbper",
     "st_rad",
-    "pl_orbper"
+    "sy_dist",
+    "pl_bmasse"
   ],
   "label_column": "label_standardized",
   "dataset_sources": [

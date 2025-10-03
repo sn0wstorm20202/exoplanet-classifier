@@ -298,6 +298,14 @@ async def get_model_info():
         "feature_importance": classifier.metadata.get("evaluation_results", {}).get("feature_importance", {})
     }
     
+    # Ensemble-specific info
+    if classifier.metadata.get("model_type") == "VotingEnsemble":
+        info["ensemble_composition"] = classifier.metadata.get("ensemble_composition", {})
+        info["individual_accuracies"] = classifier.metadata.get("individual_accuracies", {})
+        voting = classifier.metadata.get("voting")
+        if voting:
+            info["voting_method"] = f"{voting} (probability averaging)"
+    
     return info
 
 @app.post("/predict", response_model=PredictionResponse)
