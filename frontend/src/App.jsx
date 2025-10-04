@@ -2,7 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import './index.css';
 
-const API_BASE_URL = 'http://localhost:8000';
+// Get API base URL from environment variables
+// Vite exposes env vars prefixed with VITE_
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
+// Optional: Log the environment for debugging
+console.log('Environment:', import.meta.env.VITE_APP_ENV);
+console.log('API Base URL:', API_BASE_URL);
 
 // Feature field definitions
 const FEATURE_FIELDS = [
