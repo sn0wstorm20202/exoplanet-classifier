@@ -1,27 +1,27 @@
 {
   "model_type": "RandomForestClassifier",
-  "training_timestamp": "2025-10-05T03:06:28.376825",
+  "training_timestamp": "2025-11-15T18:19:15.157291",
   "feature_names": [
-    "fp_flag_nt",
-    "pl_insol",
-    "pl_eqt",
     "pl_bmasse",
-    "pl_trandur",
     "pl_rade",
-    "st_slogg",
-    "pl_impact",
-    "fp_flag_co",
-    "fp_flag_ss",
-    "fp_flag_ec",
-    "pl_snr",
-    "transit_count",
-    "koi_score",
-    "pl_orbsmax",
-    "pl_trandep",
     "sy_dist",
+    "fp_flag_nt",
+    "st_slogg",
+    "fp_flag_ec",
     "st_rad",
+    "pl_insol",
+    "fp_flag_ss",
+    "pl_orbsmax",
+    "fp_flag_co",
+    "pl_eqt",
     "pl_orbper",
+    "pl_snr",
     "st_teff",
+    "pl_trandep",
+    "pl_trandur",
+    "pl_impact",
+    "koi_score",
+    "transit_count",
     "fp_flag_any",
     "pl_density",
     "depth_ratio",
@@ -43,7 +43,7 @@
     "estimators": [
       [
         "rf",
-        "RandomForestClassifier(class_weight='balanced', max_features='log2',\n                       min_samples_leaf=2, min_samples_split=5,\n                       n_estimators=300, n_jobs=-1, random_state=42)"
+        "RandomForestClassifier(class_weight='balanced', min_samples_leaf=2,\n                       min_samples_split=5, n_estimators=300, n_jobs=-1,\n                       random_state=42)"
       ],
       [
         "gb",
@@ -58,14 +58,14 @@
       2,
       1
     ],
-    "rf": "RandomForestClassifier(class_weight='balanced', max_features='log2',\n                       min_samples_leaf=2, min_samples_split=5,\n                       n_estimators=300, n_jobs=-1, random_state=42)",
+    "rf": "RandomForestClassifier(class_weight='balanced', min_samples_leaf=2,\n                       min_samples_split=5, n_estimators=300, n_jobs=-1,\n                       random_state=42)",
     "gb": "GradientBoostingClassifier(max_depth=8, n_estimators=200, random_state=42,\n                           subsample=0.8)",
     "rf__bootstrap": true,
     "rf__ccp_alpha": 0.0,
     "rf__class_weight": "balanced",
     "rf__criterion": "gini",
     "rf__max_depth": null,
-    "rf__max_features": "log2",
+    "rf__max_features": "sqrt",
     "rf__max_leaf_nodes": null,
     "rf__max_samples": null,
     "rf__min_impurity_decrease": 0.0,
@@ -101,26 +101,26 @@
     "gb__warm_start": false
   },
   "evaluation_results": {
-    "train_accuracy": 0.9878122360323398,
-    "test_accuracy": 0.8549710424710425,
-    "precision_weighted": 0.8599819461664376,
-    "recall_weighted": 0.8549710424710425,
-    "f1_weighted": 0.8554945077178402,
-    "cv_accuracy_mean": 0.8416798244296558,
-    "cv_accuracy_std": 0.006616332111891913,
-    "cv_f1_mean": 0.8424422936994803,
-    "cv_f1_std": 0.006515021185459798,
+    "train_accuracy": 0.9908893447568481,
+    "test_accuracy": 0.8561776061776062,
+    "precision_weighted": 0.8613105188864645,
+    "recall_weighted": 0.8561776061776062,
+    "f1_weighted": 0.8566638127922281,
+    "cv_accuracy_mean": 0.8419813561188831,
+    "cv_accuracy_std": 0.004457697177548309,
+    "cv_f1_mean": 0.8427200393445637,
+    "cv_f1_std": 0.004361425204512621,
     "classification_report": {
       "CANDIDATE": {
-        "precision": 0.8061783756851021,
-        "recall": 0.8919514884233738,
-        "f1-score": 0.8468987176131902,
+        "precision": 0.8067560854446101,
+        "recall": 0.8952590959206174,
+        "f1-score": 0.8487065586621374,
         "support": 1814.0
       },
       "CONFIRMED": {
-        "precision": 0.8642659279778393,
-        "recall": 0.8160418482999128,
-        "f1-score": 0.8394618834080717,
+        "precision": 0.8681522748375116,
+        "recall": 0.8151700087183958,
+        "f1-score": 0.8408273381294964,
         "support": 1147.0
       },
       "FALSE POSITIVE": {
@@ -129,30 +129,30 @@
         "f1-score": 0.8842199374161824,
         "support": 1183.0
       },
-      "accuracy": 0.8549710424710425,
+      "accuracy": 0.8561776061776062,
       "macro avg": {
-        "precision": 0.86959149148031,
-        "recall": 0.8480011601419127,
-        "f1-score": 0.8568601794791482,
+        "precision": 0.8710795103533702,
+        "recall": 0.8488130827804882,
+        "f1-score": 0.8579179447359387,
         "support": 4144.0
       },
       "weighted avg": {
-        "precision": 0.8599819461664376,
-        "recall": 0.8549710424710425,
-        "f1-score": 0.8554945077178402,
+        "precision": 0.8613105188864645,
+        "recall": 0.8561776061776062,
+        "f1-score": 0.8566638127922281,
         "support": 4144.0
       }
     },
     "confusion_matrix": [
       [
-        1618,
-        141,
-        55
+        1624,
+        136,
+        54
       ],
       [
         201,
-        936,
-        10
+        935,
+        11
       ],
       [
         188,
@@ -162,14 +162,14 @@
     ],
     "confusion_matrix_percentages": [
       [
-        89.19514884233737,
-        7.772877618522601,
-        3.031973539140022
+        89.52590959206174,
+        7.497243660418963,
+        2.9768467475192946
       ],
       [
         17.523975588491716,
-        81.60418482999128,
-        0.8718395815170008
+        81.51700087183958,
+        0.959023539668701
       ],
       [
         15.891800507185122,
@@ -178,168 +178,168 @@
       ]
     ],
     "feature_importance": {
-      "fp_flag_any": 0.21765443470551188,
-      "koi_score": 0.10130204805513177,
-      "pl_trandep": 0.07768062899977018,
-      "sy_dist": 0.07111662179344444,
-      "pl_rade": 0.06276674824483472,
-      "pl_snr": 0.052841683880798684,
-      "pl_trandur": 0.04358046776857851,
-      "pl_orbper": 0.03607557085509493,
-      "depth_ratio": 0.03598492997826516,
-      "hz_ratio": 0.03224713863843183,
-      "st_rad": 0.029498516374321708,
-      "pl_eqt": 0.0292271086401329,
-      "st_teff": 0.029200228121570693,
-      "st_mass_proxy": 0.02457943966750412,
-      "pl_insol": 0.02436915000601306,
-      "st_slogg": 0.02152706160856885,
-      "fp_flag_ss": 0.016916592933153576,
-      "fp_flag_nt": 0.016652817143519107,
-      "fp_flag_co": 0.015082205699227042,
-      "transit_signal": 0.013624115534636015,
-      "pl_impact": 0.012019231525267808,
-      "pl_orbsmax": 0.009762913839413738,
-      "snr_quality": 0.008026611272524407,
-      "transit_count": 0.007684405495084107,
-      "pl_bmasse": 0.004232264908711501,
-      "fp_flag_ec": 0.0040192812111386695,
-      "pl_density": 0.002327783099350537
+      "fp_flag_any": 0.2263072351152034,
+      "koi_score": 0.10035307857769207,
+      "pl_trandep": 0.07740270331253768,
+      "sy_dist": 0.07219115861787573,
+      "pl_rade": 0.061594823868542564,
+      "pl_snr": 0.052674474939321744,
+      "pl_trandur": 0.04416091062363785,
+      "depth_ratio": 0.037124502991258954,
+      "pl_orbper": 0.035753332730953574,
+      "hz_ratio": 0.03096430445482618,
+      "st_rad": 0.029763369899122767,
+      "st_teff": 0.02951390497597566,
+      "pl_eqt": 0.02926866355778665,
+      "st_mass_proxy": 0.02400376629602617,
+      "pl_insol": 0.02329937424587302,
+      "st_slogg": 0.021229674762748178,
+      "fp_flag_co": 0.01571403474979401,
+      "fp_flag_ss": 0.015295501494880293,
+      "fp_flag_nt": 0.013835590947019099,
+      "transit_signal": 0.012470470282672244,
+      "pl_impact": 0.010565253037575974,
+      "pl_orbsmax": 0.010076102747550816,
+      "transit_count": 0.008041658058472454,
+      "snr_quality": 0.007498329792816224,
+      "fp_flag_ec": 0.004616412000151272,
+      "pl_bmasse": 0.004310946040744631,
+      "pl_density": 0.0019704218789409257
     },
     "feature_importance_ranking": [
       {
         "feature": "fp_flag_any",
-        "importance": 0.21765443470551188,
+        "importance": 0.2263072351152034,
         "rank": 21
       },
       {
         "feature": "koi_score",
-        "importance": 0.10130204805513177,
-        "rank": 14
+        "importance": 0.10035307857769207,
+        "rank": 19
       },
       {
         "feature": "pl_trandep",
-        "importance": 0.07768062899977018,
+        "importance": 0.07740270331253768,
         "rank": 16
       },
       {
         "feature": "sy_dist",
-        "importance": 0.07111662179344444,
-        "rank": 17
+        "importance": 0.07219115861787573,
+        "rank": 3
       },
       {
         "feature": "pl_rade",
-        "importance": 0.06276674824483472,
-        "rank": 6
+        "importance": 0.061594823868542564,
+        "rank": 2
       },
       {
         "feature": "pl_snr",
-        "importance": 0.052841683880798684,
-        "rank": 12
+        "importance": 0.052674474939321744,
+        "rank": 14
       },
       {
         "feature": "pl_trandur",
-        "importance": 0.04358046776857851,
-        "rank": 5
-      },
-      {
-        "feature": "pl_orbper",
-        "importance": 0.03607557085509493,
-        "rank": 19
+        "importance": 0.04416091062363785,
+        "rank": 17
       },
       {
         "feature": "depth_ratio",
-        "importance": 0.03598492997826516,
+        "importance": 0.037124502991258954,
         "rank": 23
       },
       {
+        "feature": "pl_orbper",
+        "importance": 0.035753332730953574,
+        "rank": 13
+      },
+      {
         "feature": "hz_ratio",
-        "importance": 0.03224713863843183,
+        "importance": 0.03096430445482618,
         "rank": 26
       },
       {
         "feature": "st_rad",
-        "importance": 0.029498516374321708,
-        "rank": 18
-      },
-      {
-        "feature": "pl_eqt",
-        "importance": 0.0292271086401329,
-        "rank": 3
+        "importance": 0.029763369899122767,
+        "rank": 7
       },
       {
         "feature": "st_teff",
-        "importance": 0.029200228121570693,
-        "rank": 20
+        "importance": 0.02951390497597566,
+        "rank": 15
+      },
+      {
+        "feature": "pl_eqt",
+        "importance": 0.02926866355778665,
+        "rank": 12
       },
       {
         "feature": "st_mass_proxy",
-        "importance": 0.02457943966750412,
+        "importance": 0.02400376629602617,
         "rank": 27
       },
       {
         "feature": "pl_insol",
-        "importance": 0.02436915000601306,
-        "rank": 2
+        "importance": 0.02329937424587302,
+        "rank": 8
       },
       {
         "feature": "st_slogg",
-        "importance": 0.02152706160856885,
-        "rank": 7
-      },
-      {
-        "feature": "fp_flag_ss",
-        "importance": 0.016916592933153576,
-        "rank": 10
-      },
-      {
-        "feature": "fp_flag_nt",
-        "importance": 0.016652817143519107,
-        "rank": 1
+        "importance": 0.021229674762748178,
+        "rank": 5
       },
       {
         "feature": "fp_flag_co",
-        "importance": 0.015082205699227042,
+        "importance": 0.01571403474979401,
+        "rank": 11
+      },
+      {
+        "feature": "fp_flag_ss",
+        "importance": 0.015295501494880293,
         "rank": 9
       },
       {
+        "feature": "fp_flag_nt",
+        "importance": 0.013835590947019099,
+        "rank": 4
+      },
+      {
         "feature": "transit_signal",
-        "importance": 0.013624115534636015,
+        "importance": 0.012470470282672244,
         "rank": 25
       },
       {
         "feature": "pl_impact",
-        "importance": 0.012019231525267808,
-        "rank": 8
+        "importance": 0.010565253037575974,
+        "rank": 18
       },
       {
         "feature": "pl_orbsmax",
-        "importance": 0.009762913839413738,
-        "rank": 15
-      },
-      {
-        "feature": "snr_quality",
-        "importance": 0.008026611272524407,
-        "rank": 24
+        "importance": 0.010076102747550816,
+        "rank": 10
       },
       {
         "feature": "transit_count",
-        "importance": 0.007684405495084107,
-        "rank": 13
+        "importance": 0.008041658058472454,
+        "rank": 20
       },
       {
-        "feature": "pl_bmasse",
-        "importance": 0.004232264908711501,
-        "rank": 4
+        "feature": "snr_quality",
+        "importance": 0.007498329792816224,
+        "rank": 24
       },
       {
         "feature": "fp_flag_ec",
-        "importance": 0.0040192812111386695,
-        "rank": 11
+        "importance": 0.004616412000151272,
+        "rank": 6
+      },
+      {
+        "feature": "pl_bmasse",
+        "importance": 0.004310946040744631,
+        "rank": 1
       },
       {
         "feature": "pl_density",
-        "importance": 0.002327783099350537,
+        "importance": 0.0019704218789409257,
         "rank": 22
       }
     ],
