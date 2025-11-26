@@ -1,11 +1,11 @@
 # 🌌 Exoplanet Classifier
 
-A complete web application for classifying exoplanets using NASA datasets and machine learning. This project combines three NASA exoplanet datasets (K2, Kepler, and TESS) to train a RandomForest classifier that can predict whether a celestial object is a **Confirmed Exoplanet**, **Planet Candidate**, or **False Positive**.
+A complete web application for classifying exoplanets using NASA datasets and machine learning. This project combines three NASA exoplanet datasets (K2, Kepler, and TESS) to train an ensemble classifier (RandomForest + GradientBoosting) that can predict whether a celestial object is a **Confirmed Exoplanet**, **Planet Candidate**, or **False Positive**.
 
 ## 🚀 Features
 
 - **Data Processing Pipeline**: Automatically processes and combines NASA datasets
-- **Machine Learning Model**: RandomForest classifier with 85-95% accuracy
+- **Machine Learning Model**: Ensemble model (RandomForest + GradientBoosting) using 27 engineered and astrophysical features (~85.6% test accuracy, ~84.2% 5-fold cross-validation accuracy)
 - **Modern Web Interface**: React frontend with purple gradient UI
 - **Dual Analysis Modes**:
   - Single planet analysis with manual input
@@ -217,40 +217,44 @@ curl -X POST http://localhost:8000/predict \
    - Click "📊 Analyze Batch"
    - Or click "🧪 Test with Sample Data"
 
-## 📈 Expected Performance
+## 🧠 Model Overview
 
-The trained model typically achieves:
-- **Accuracy**: 85-95% on test data
-- **Cross-validation**: 85-90% ± 3-5%
-- **Processing Speed**: <1 second per prediction
-- **Batch Processing**: ~1000 predictions per second
+### Key metrics (latest training run)
 
-Performance depends on your dataset quality and size.
+- **Training data**: 20,718 labeled examples from Kepler, K2, and TESS (80/20 stratified train/test split)
+- **Training accuracy**: ~99.1%
+- **Test accuracy**: ~85.6%
+- **Weighted precision (test)**: ~86.1%
+- **Weighted recall (test)**: ~85.6%
+- **Weighted F1-score (test)**: ~85.7%
+- **5-fold cross-validation accuracy (test)**: ~84.2% (+/- 0.5%)
+- **5-fold cross-validation F1-score (test)**: ~84.3% (+/- 0.4%)
 
-## 🔍 Model Details
+### Feature set
 
-### Features Used
-The model uses 8 key features for classification:
-1. **pl_orbper**: Orbital Period [days]
-2. **pl_rade**: Planet Radius [Earth radii]  
-3. **pl_trandep**: Transit Depth [ppm]
-4. **pl_trandur**: Transit Duration [hours]
-5. **pl_bmasse**: Planet Mass [Earth masses]
-6. **st_teff**: Stellar Temperature [K]
-7. **st_rad**: Stellar Radius [Solar radii]
-8. **sy_dist**: System Distance [pc]
+- **Total features**: 27 numeric features
+- **Base astrophysical features** (examples): orbital period, planet radius and mass, transit depth and duration, stellar temperature and radius, system distance
+- **Quality indicators** (examples): `fp_flag_any`, `koi_score`, `pl_snr`
+- **Engineered features** (examples): `pl_density`, `depth_ratio`, `hz_ratio`, `transit_signal`, `st_mass_proxy`
 
-### Classification Labels
-- **CONFIRMED**: Validated exoplanets
-- **CANDIDATE**: Potential exoplanets requiring follow-up
-- **FALSE POSITIVE**: Not actual exoplanets
+### Classification labels and architecture
 
-### Model Architecture
-- **Algorithm**: RandomForest Classifier
-- **Trees**: 200 estimators
-- **Max Depth**: 15
-- **Feature Scaling**: StandardScaler
-- **Class Balance**: Balanced weights
+- **Labels**: `CONFIRMED`, `CANDIDATE`, `FALSE POSITIVE`
+- **Model**: Soft-voting ensemble of an optimized RandomForest (300 trees, class_weight="balanced") and a GradientBoosting classifier
+- **Preprocessing**: StandardScaler fitted on the training split; all 27 features are z-scored
+
+### Training procedure (backend/train.py)
+
+- **Data split**: Stratified 80/20 train/test split to preserve class ratios (~44% CANDIDATE, 28% FALSE POSITIVE, 28% CONFIRMED)
+- **Hyperparameter search**: 60-iteration RandomizedSearchCV over RandomForest parameters (trees, depth, min samples, max_features),
+  using 5-fold StratifiedKFold and weighted F1 as the scoring metric (search space: `n_estimators` in {200, 300}, `max_depth` in {15, 18, None},
+  `min_samples_split` in {5, 10}, `min_samples_leaf` in {2, 4}, `max_features` in {"sqrt", "log2"}; best cross-validation F1 ~ 0.84 with
+  `n_estimators`=300, `min_samples_split`=5, `min_samples_leaf`=2, `max_features`="sqrt", `max_depth`=None)
+- **Ensemble training**: The best RandomForest (with `class_weight="balanced"`) is combined with a GradientBoosting classifier
+  (`n_estimators`=200, `max_depth`=8, `learning_rate`=0.1, `subsample`=0.8) in a soft-voting ensemble with weights [2, 1]
+- **Class imbalance handling**: Class distributions are analyzed and models use `class_weight="balanced"` to compensate for mild imbalance
+- **Evaluation**: Final metrics are reported on the held-out test set (accuracy, precision/recall/F1 by class) plus 5-fold cross-validation; confusion matrices and feature-importance rankings are stored in `models/model_metadata.json`
+- **Interpretability**: High-impact features include `fp_flag_any`, `koi_score`, `pl_trandep`, `sy_dist`, and `pl_rade`, showing that both quality flags and physical parameters drive the model's decisions
 
 ## 🐳 Docker Commands
 
